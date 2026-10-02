@@ -22,8 +22,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
   if (shouldDisable) {
     return; // Stop execution here. Don't set up listeners/UI.
   }
-
-  // ... REST OF YOUR EXISTING CONTENT.JS CODE BELOW ...
   
   const nativePost = window.postMessage;
   const nativeAdd  = window.addEventListener;
@@ -77,7 +75,7 @@ if (typeof browser === "undefined") { var browser = chrome; }
       const inW = matches(host, s.wl);
       const inB = matches(host, s.bl);
       let decision = null;
-      // BLOCKLIST WINS OVER WHITELIST when a domain appears in both.
+      // BLOCKLIST has priority over WHITELIST when a domain appears in both.
       if (s.lock)       decision = (inB || !inW) ? "deny" : "allow"; // lockdown: lists only
       else if (inB)     decision = "deny";                           // blocked takes priority
       else if (inW)     decision = "allow";
@@ -135,7 +133,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
     .hint{color:#6e7681;}
   }`;
 
-  // ⚠️ WARNING TRIANGLE ICON
   const LOCK_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">' +
     '<path fill="currentColor" d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v4h-2z"/></svg>';
 
