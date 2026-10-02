@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Clipboard Buckler</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#1f2328; --muted:#57606a; --line:#d0d7de; --soft:#f6f8fa;
+    --accent:#e8843c; --accent-fg:#ffffff; --danger:#cf222e; --ok:#1a7f37;
+  }
+  html[data-theme="dark"]{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --line:#30363d; --soft:#161b22;
+    --accent:#f0883e; --accent-fg:#1c2128; --danger:#f85149; --ok:#3fb950;
+  }
+  *{box-sizing:border-box}
+
+  body{margin:0;width:340px;background:var(--bg);color:var(--fg);
+       font:13px/1.45 system-ui,sans-serif;} 
+
+  header{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);}
+  header img{width:28px;height:28px;border-radius:6px;flex:0 0 auto;}
+  header .ttl{flex:1;}
+  header h1{font-size:14px;margin:0;font-weight:700;}
+  header p{margin:0;font-size:11px;color:var(--muted);}
+  .btn-row{display:flex;gap:6px;}
+  .ghost{appearance:none;border:1px solid var(--line);background:var(--soft);color:var(--fg);
+         font:inherit;font-size:12px;font-weight:600;padding:5px 9px;border-radius:7px;cursor:pointer;}
+  .ghost:hover{border-color:var(--accent);}
+  .lock{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--soft);}
+  .lock .txt{flex:1;}
+  .lock b{display:block;font-size:13px;}
+  .lock span{font-size:11px;color:var(--muted);}
+  .switch{position:relative;width:38px;height:22px;flex:0 0 auto;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:var(--line);border-radius:22px;transition:.15s;cursor:pointer;}
+  .slider:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s;}
+  .switch input:checked + .slider{background:var(--accent);}
+  .switch input:checked + .slider:before{transform:translateX(16px);}
+  .switch input:focus-visible + .slider{outline:2px solid var(--accent);outline-offset:2px;}
+  section{padding:10px 14px;border-bottom:1px solid var(--line);}
+  section:last-of-type{border-bottom:0;}
+  h2{font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+     display:flex;align-items:center;gap:6px;}
+  h2 .dot{width:8px;height:8px;border-radius:50%;}
+  .wl .dot{background:var(--ok);} .bl .dot{background:var(--danger);}
+  h2 .count{margin-left:auto;font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;}
+  ul{list-style:none;margin:0 0 8px;padding:0;max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  li{display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--line);}
+  li:last-child{border-bottom:0;}
+  li span{flex:1;word-break:break-all;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;} /* Kept mono for domains */
+  li button{appearance:none;border:0;background:transparent;color:var(--muted);cursor:pointer;
+            font-size:15px;line-height:1;padding:2px 4px;border-radius:5px;}
+  li button:hover{background:var(--soft);color:var(--danger);}
+  .empty{padding:8px;color:var(--muted);font-style:italic;font-size:12px;text-align:center;}
+  .add{display:flex;gap:6px;}
+  .add input{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:7px;
+             background:var(--bg);color:var(--fg);font:inherit;} /* Inherits system-ui */
+  .add input:focus-visible{outline:2px solid var(--accent);outline-offset:-1px;}
+  .add button{appearance:none;border:0;background:var(--accent);color:var(--accent-fg);
+              font:inherit;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;} /* Inherits system-ui */
+  .add button:hover{filter:brightness(.95);}
+  details{padding:10px 14px;font-size:11.5px;color:var(--muted);}
+  summary{cursor:pointer;color:var(--fg);font-weight:600;font-size:12px;}
+  details p{margin:8px 0 0;}
+  details code{background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:0 3px;font-family:ui-monospace,Menlo,Consolas,monospace;}
+</style>
+</head>
+<body>
+  <header>
+    <img src="icon.png" alt="">
+    <div class="ttl">
+      <h1>Clipboard Buckler</h1>
+      <p>Clipboard Contents Anti-Tamper</p>
+    </div>
+    <div class="btn-row">
+      <button id="themeBtn" class="ghost" title="Toggle light/dark theme">🌣</button>
+      <button id="csvBtn" class="ghost" title="Export or import both lists to/from CSV file">⇅ CSV</button>
+    </div>
+    <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+  </header>
+
+  <div class="lock">
+    <div class="txt">
+      <b>Lockdown mode</b>
+      <span>Never prompt - rely only on the lists below.</span>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="lockdown">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <section class="wl">
+    <h2>
+      <span class="dot"></span>Allowed (whitelist)
+      <span class="count" id="wlCount"></span>
+      <button id="wlAddCurrent" class="ghost add-current-btn" title="Add current (sub)domain to whitelist">+</button>
+    </h2>
+    <ul id="wlList"></ul>
+    <div class="add">
+      <input id="wlInput" type="text" placeholder="e.g. example.com" spellcheck="false" autocomplete="off">
+      <button id="wlAdd">Add</button>
+    </div>
+  </section>
+
+<section class="bl">
+    <h2>
+      <span class="dot"></span>Blocked (blacklist)
+      <span class="count" id="blCount"></span>
+      <button id="blAddCurrent" class="ghost add-current-btn" title="Add current (sub)domain to blacklist">+</button>
+    </h2>
+    <ul id="blList"></ul>
+    <div class="add">
+      <input id="blInput" type="text" placeholder="e.g. spam.net" spellcheck="false" autocomplete="off">
+      <button id="blAdd">Add</button>
+    </div>
+  </section>
+
+  <details>
+    <summary>How to use</summary>
+    <p>Whenever a site tries to copy something to your clipboard, a 30‑second prompt dialog appears. You can choose to allow or block it once, or always/never for that (sub)domain:<br>
+       <code>Yes</code>/<code>No</code> apply once;<br> <code>Always</code> → whitelist, <code>Never</code> → blacklist.<br>
+       If the dialog times out, the copy action is automatically blocked.<br>
+       <br>
+       In the extension's interface, you can manage your <b>allowed</b> and <b>blocked</b> domains.<br>
+       Entries match the domain and its subdomains.<br>
+       A <b>blocked</b> entry has priority over an <b>allowed</b> one.<br>
+       Use <b>⇅ CSV</b> to export both lists to one file or import/merge another.<br>
+      <br>
+    </p>
+  </details>
+  
+  <details>
+    <summary>Site not working?</summary>
+    <p><b>Clipboard Buckler</b> is disabled on whitelisted sites.<br>
+      If the current site is not working properly or broken, add it to the <b>whitelist</b> and refresh the page.<br>
+      If the issues still persist, you can temporarily disable the extension at the browser level and then refresh the current page.<br>
+    </p>
+  </details>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Clipboard Buckler",
+  "version": "1.0.2",
+  "description": "Intercepts website attempts to write to your clipboard and prompts for permission. Stops unwanted tampering with your clipboard.",
+  "author": "Andrei Ionel (thetechdog)",
+  "permissions": ["storage", "activeTab"],
+  "action": {
+    "default_title": "Clipboard Buckler",
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icon.png", "48": "icon.png"}
+  },
+  "icons": { "16": "icon.png", "48": "icon.png"},
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["interceptor.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "ISOLATED"
+    }
+  ]
+}
