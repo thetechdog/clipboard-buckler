@@ -12,8 +12,8 @@ The UI allows you to manage the filter lists, with the options to add new sites 
 Lockdown Mode provides a set and forget experience by disabling prompting entirely and automatically blocking the copy APIs on any site that is not in the whitelist. This could be especially useful if you want to set up the extension for someone that is susceptible to clipboard hijacking attacks.
 
 ## Where to get it
-Chrome: soon  
-Firefox: soon
+[Get it from the Chrome Web Store](https://chromewebstore.google.com/detail/clipboard-buckler/lkcpknhidoajcnnfecebnblalbjipgco)  
+[Get it from the Firefox Add-Ons Site](https://addons.mozilla.org/en-US/firefox/addon/clipboard-buckler/)
 
 ## License
 (C) Andrei Ionel 2026, licensed under the MIT License
