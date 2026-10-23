@@ -5,16 +5,18 @@
 <title>Clipboard Buckler</title>
 <style>
   :root{
-    --bg:#ffffff; --fg:#1f2328; --muted:#57606a; --line:#d0d7de; --soft:#f6f8fa;
-    --accent:#e8843c; --accent-fg:#ffffff; --danger:#cf222e; --ok:#1a7f37;
+    --page:#e8ebef; --bg:#ffffff; --fg:#1b2026; --muted:#5b6570; --line:#d9dee4; --soft:#f4f6f8;
+    --accent:#2563eb; --accent-fg:#ffffff; --danger:#cf222e; --ok:#1a7f37;
   }
   html[data-theme="dark"]{
-    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --line:#30363d; --soft:#161b22;
-    --accent:#f0883e; --accent-fg:#1c2128; --danger:#f85149; --ok:#3fb950;
+    --page:#0f1114; --bg:#1e2329; --fg:#e8eaed; --muted:#a5aeb8; --line:#3a4149; --soft:#272d34;
+    --accent:#35d6c2; --accent-fg:#0e1f1c; --danger:#ff7a76; --ok:#4cc38a;
   }
   *{box-sizing:border-box}
-  body{margin:0;width:340px;background:var(--bg);color:var(--fg);
-       font:13px/1.45 system-ui,sans-serif;} 
+  html{background:var(--page);}
+  body{margin:0;width:340px;background:var(--bg);color:var(--fg);border:1px solid var(--line);
+       border-radius:10px;
+       font:13px/1.45 system-ui,sans-serif;}
 
   header{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);}
   header img{width:28px;height:28px;border-radius:6px;flex:0 0 auto;}
@@ -25,20 +27,24 @@
   .ghost{appearance:none;border:1px solid var(--line);background:var(--soft);color:var(--fg);
          font:inherit;font-size:12px;font-weight:600;padding:5px 9px;border-radius:7px;cursor:pointer;}
   .ghost:hover{border-color:var(--accent);}
+  .ghost:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .btn-row .ghost{height:26px;display:inline-flex;align-items:center;justify-content:center;line-height:1;}
   
-  /* Modal Styles */
   #importModal{display:none;position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;
-               background:rgba(0,0,0,0.5);backdrop-filter:blur(2px);align-items:center;justify-content:center;}
+               background:rgba(10,14,18,.55);align-items:center;justify-content:center;}
   #importModal.active{display:flex;}
-  .modal-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px;width:90%;max-width:300px;
-              box-shadow:0 10px 30px rgba(0,0,0,0.3);}
+  .modal-card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:16px;width:90%;max-width:300px;
+              box-shadow:0 10px 30px rgba(0,0,0,.3);}
   .modal-title{font-weight:700;margin-bottom:8px;font-size:14px;}
   .modal-desc{font-size:11px;color:var(--muted);margin-bottom:10px;}
   #csvTextarea{width:100%;height:120px;resize:none;padding:8px;border:1px solid var(--line);border-radius:6px;
                background:var(--soft);color:var(--fg);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;}
+  #csvTextarea:focus-visible{outline:2px solid var(--accent);outline-offset:-1px;}
   .modal-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end;}
   .btn-cancel{background:transparent;border:1px solid var(--line);color:var(--fg);}
-  .btn-confirm{background:var(--accent);border:none;color:var(--accent-fg);}
+  .btn-confirm{background:var(--accent);border:1px solid var(--accent);color:var(--accent-fg);}
+  .btn-confirm:hover{filter:brightness(.92);}
+  .btn-confirm:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .error-msg{color:var(--danger);font-size:11px;margin-top:4px;display:none;}
 
   .lock{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--soft);}
@@ -73,7 +79,8 @@
   .add input:focus-visible{outline:2px solid var(--accent);outline-offset:-1px;}
   .add button{appearance:none;border:0;background:var(--accent);color:var(--accent-fg);
               font:inherit;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;} 
-  .add button:hover{filter:brightness(.95);}
+  .add button:hover{filter:brightness(.92);}
+  .add button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   details{padding:10px 14px;font-size:11.5px;color:var(--muted);}
   summary{cursor:pointer;color:var(--fg);font-weight:600;font-size:12px;}
   details p{margin:8px 0 0;}
@@ -81,7 +88,6 @@
 </style>
 </head>
 <body>
-  <!-- Import Modal -->
   <div id="importModal">
     <div class="modal-card">
       <div class="modal-title">Import Lists</div>
@@ -147,7 +153,7 @@
   <details>
     <summary>How to use</summary>
     <p>Whenever a site tries to copy something to your clipboard, a 30‑second prompt dialog appears. You can choose to allow or block it once, or always/never for that (sub)domain:<br>
-       <code>Yes</code>/<code>No</code> apply once;<br> <code>Always</code> → whitelist, <code>Never</code> → blacklist.<br>
+       <code>Allow</code>/<code>Deny</code> apply once;<br> <code>Always Allow</code> → whitelist, <code>Always Deny</code> → blacklist.<br>
        If the dialog times out, the copy action is automatically blocked.<br>
        <br>
        In the extension's interface, you can manage your <b>allowed</b> and <b>blocked</b> domains.<br>

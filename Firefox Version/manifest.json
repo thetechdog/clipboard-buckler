@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Clipboard Buckler",
-  "version": "1.0.2",
+  "version": "1.1",
   "description": "Intercepts website attempts to write to your clipboard and prompts for permission. Stops unwanted tampering with your clipboard.",
   "developer": {
     "name": "Andrei Ionel (thetechdog)",

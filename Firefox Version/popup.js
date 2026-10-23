@@ -4,7 +4,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
   "use strict";
   const $ = function (s) { return document.querySelector(s); };
 
-  // ---------- theme toggle -------------------------------------------------
   async function loadThemePreference() {
     const st = await browser.storage.local.get(["themePref"]);
     return st.themePref || "auto"; // "auto" | "light" | "dark"
@@ -40,7 +39,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
     await applyTheme(pref);
   })();
 
-  // ---------- helpers ------------------------------------------------------
   function normalizeHost(h) {
     h = String(h || "").trim().toLowerCase();
     h = h.replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
@@ -92,18 +90,15 @@ if (typeof browser === "undefined") { var browser = chrome; }
     load();
   }
 
-  // ---------- Add Current Domain Logic -------------------------------------
   async function getCurrentDomain() {
     try {
-      // Query the active tab in the current window
       const tabs = await browser.tabs.query({ active: true, currentWindow: true });
       if (!tabs || tabs.length === 0) {
         console.warn("No active tab found.");
         return null;
       }
       const url = tabs[0].url;
-      // Safety check: Ensure we don't try to whitelist internal browser pages
-      // e.g., about:blank, chrome://settings, moz-extension://...
+      // Internal browser pages cannot be list entries.
       if (!url || url.startsWith("about:") || url.startsWith("chrome://") || url.startsWith("moz-extension://") || url.startsWith("chrome-extension://") || url.startsWith("edge://") || url.startsWith("file://") || url.startsWith("opera://") || url.startsWith("vivaldi://") || url.startsWith("brave://") || url.startsWith("internet://") || url.startsWith("whale://")) {
         return -1;
       }
@@ -133,12 +128,10 @@ if (typeof browser === "undefined") { var browser = chrome; }
       await browser.storage.local.set({ [key]: arr }); 
       load();
     } else {
-      // Optional: Provide feedback if already present
-      // alert(`"${host}" is already in the ${key}.`);
+      // Host is already listed; nothing to do.
     }
   }
 
-  // ---------- CSV/TXT Export / Import -----------------------------------------
   function csvCell(v) {
     v = String(v == null ? "" : v);
     return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
@@ -163,7 +156,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
     download("clipboard-buckler.txt", lines.join("\r\n") + "\r\n");
   }
 
-  // Parse Text directly with Validation
   function parseAndValidateText(text) {
     if (!text || !text.trim()) {
       throw new Error("The text area is empty.");
@@ -172,7 +164,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
     const rows = []; 
     let field = "", row = [], q = false;
     
-    // Simple CSV parser loop
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
       if (q) {
@@ -189,14 +180,12 @@ if (typeof browser === "undefined") { var browser = chrome; }
     }
     if (field !== "" || row.length) { row.push(field); rows.push(row); }
 
-    // Filter empty lines
     const validRows = rows.filter(r => r.some(x => String(x).trim() !== ""));
     
     if (validRows.length === 0) {
       throw new Error("No valid data rows found.");
     }
 
-    // Check Header
     const firstRow = validRows[0];
     const hasHeader = (/^(type|kind)$/i.test(String(firstRow[0]).trim()));
     const startIndex = hasHeader ? 1 : 0;
@@ -223,7 +212,7 @@ if (typeof browser === "undefined") { var browser = chrome; }
       if (type === "allow" || type === "w" || type === "whitelist") addWL.add(dom);
       else if (type === "block" || type === "b" || type === "blacklist") addBL.add(dom);
       else {
-        invalidLines++; // Unknown type
+        invalidLines++; // unknown type
       }
     }
 
@@ -241,8 +230,7 @@ if (typeof browser === "undefined") { var browser = chrome; }
 
     try {
       const result = parseAndValidateText(text);
-      
-      // Merge with existing storage
+
       const cur = await browser.storage.local.get(["whitelist", "blacklist"]);
       const wlSet = new Set((cur.whitelist || []).map(normalizeHost).filter(Boolean));
       const blSet = new Set((cur.blacklist || []).map(normalizeHost).filter(Boolean));
@@ -270,7 +258,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
     }
   }
 
-  // Modal Controls
   function openModal() {
     $("#csvTextarea").value = "";
     $("#importError").style.display = "none";
@@ -282,7 +269,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
     $("#importModal").classList.remove("active");
   }
 
-  // ---------- wiring -------------------------------------------------------
   $("#wlAdd").addEventListener("click", function () { add("whitelist", $("#wlInput")); });
   $("#blAdd").addEventListener("click", function () { add("blacklist", $("#blInput")); });
   $("#wlInput").addEventListener("keydown", function (e) { if (e.key === "Enter") add("whitelist", e.target); });
