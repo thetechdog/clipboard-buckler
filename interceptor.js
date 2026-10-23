@@ -5,7 +5,7 @@
   
   let installed = false;
   let configReceived = false;
-  let shouldInstall = true; // Default to installing unless told otherwise
+  let shouldInstall = true;
 
   // Listen for config from Isolated World (content.js)
   window.addEventListener("message", function(ev) {
@@ -16,7 +16,6 @@
       if (d.disable === true) {
         shouldInstall = false;
       }
-      // Once received, try to install if appropriate
       tryInstall();
     }
   }, true);
@@ -28,7 +27,7 @@
     installed = true;
     window.__cbBucklerInstalled = true;
 
-    // Capture natives BEFORE a page can tamper with them.
+    // Capture natives before a page can tamper with them.
     const nativePost   = window.postMessage;
     const nativeAdd    = window.addEventListener;
     const NS = "__clipboardBuckler";
@@ -88,7 +87,7 @@
       }
     }, true);
 
-    // ---- Patch the modern async Clipboard API -------------------------------
+    // Patch the async Clipboard API.
     const clip = navigator.clipboard;
     const nativeWriteText = clip && typeof clip.writeText === "function" ? clip.writeText : null;
     const nativeWrite     = clip && typeof clip.write     === "function" ? clip.write     : null;
@@ -123,7 +122,7 @@
       };
     }
 
-    // ---- Patch the legacy execCommand('copy') -------------------------------
+    // Patch the legacy execCommand('copy').
     const nativeExec = typeof document.execCommand === "function" ? document.execCommand : null;
     if (nativeExec) {
       document.execCommand = function (command) {
@@ -143,7 +142,7 @@
     }
   }
 
-  // Fallback: If config never arrives (e.g., content script failed), install anyway after short delay
+  // If config never arrives (content script failed to load), install anyway after a short delay.
   setTimeout(() => {
     if (!configReceived) {
       shouldInstall = true;

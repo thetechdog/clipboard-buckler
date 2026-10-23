@@ -4,7 +4,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
   "use strict";
   const $ = function (s) { return document.querySelector(s); };
 
-  // ---------- theme toggle -------------------------------------------------
   async function loadThemePreference() {
     const st = await browser.storage.local.get(["themePref"]);
     return st.themePref || "auto"; // "auto" | "light" | "dark"
@@ -40,7 +39,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
     await applyTheme(pref);
   })();
 
-  // ---------- helpers ------------------------------------------------------
   function normalizeHost(h) {
     h = String(h || "").trim().toLowerCase();
     h = h.replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
@@ -92,10 +90,8 @@ if (typeof browser === "undefined") { var browser = chrome; }
     load();
   }
 
-  // ---------- Add Current Domain Logic -------------------------------------
   async function getCurrentDomain() {
     try {
-      // Query the active tab in the current window
       const tabs = await browser.tabs.query({ active: true, currentWindow: true });
       
       if (!tabs || tabs.length === 0) {
@@ -105,8 +101,7 @@ if (typeof browser === "undefined") { var browser = chrome; }
 
       const url = tabs[0].url;
       
-      // Safety check: Ensure we don't try to whitelist internal browser pages
-      // e.g., about:blank, chrome://settings, moz-extension://...
+      // Internal browser pages cannot be list entries.
       if (!url || url.startsWith("about:") || url.startsWith("chrome://") || url.startsWith("moz-extension://") || url.startsWith("chrome-extension://") || url.startsWith("edge://") || url.startsWith("file://") || url.startsWith("opera://") || url.startsWith("vivaldi://") || url.startsWith("brave://") || url.startsWith("internet://") || url.startsWith("whale://")) {
         return -1;
       }
@@ -140,12 +135,10 @@ if (typeof browser === "undefined") { var browser = chrome; }
       await browser.storage.local.set({ [key]: arr }); 
       load();
     } else {
-      // Optional: Provide feedback if already present
-      // alert(`"${host}" is already in the ${key}.`);
+      // Host is already listed; nothing to do.
     }
   }
 
-  // ---------- CSV export / import -----------------------------------------
   function csvCell(v) {
     v = String(v == null ? "" : v);
     return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
@@ -211,7 +204,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
     load();
   }
 
-  // ---------- wiring -------------------------------------------------------
   $("#wlAdd").addEventListener("click", function () { add("whitelist", $("#wlInput")); });
   $("#blAdd").addEventListener("click", function () { add("blacklist", $("#blInput")); });
   $("#wlInput").addEventListener("keydown", function (e) { if (e.key === "Enter") add("whitelist", e.target); });
@@ -220,7 +212,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
 
   $("#themeBtn").addEventListener("click", cycleTheme);
   
-  // New Buttons for Current Domain
   $("#wlAddCurrent").addEventListener("click", function() { addCurrentTo("whitelist"); });
   $("#blAddCurrent").addEventListener("click", function() { addCurrentTo("blacklist"); });
 

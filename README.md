@@ -17,6 +17,3 @@ Lockdown Mode provides a set and forget experience by disabling prompting entire
 
 ## License
 (C) Andrei Ionel 2026, licensed under the MIT License
-
-## AI Disclosure
-AI was used in the development process of this extension

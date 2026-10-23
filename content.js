@@ -3,7 +3,7 @@ if (typeof browser === "undefined") { var browser = chrome; }
 (async function () {
   "use strict";
   
-  // --- FAST PATH: Check whitelist/blacklist IMMEDIATELY ---
+  // Checked first so the main world can be told to stand down right away.
   const st = await browser.storage.local.get(["whitelist", "blacklist"]);
   const wl = st.whitelist || [];
   const bl = st.blacklist || [];
@@ -12,17 +12,15 @@ if (typeof browser === "undefined") { var browser = chrome; }
   const isWhitelisted = wl.some(e => host === e || host.endsWith("." + e));
   const isBlacklisted = bl.some(e => host === e || host.endsWith("." + e));
 
-  // Signal to Main World: Should it install?
-  // If whitelisted AND NOT blacklisted -> Disable Interception
+  // Whitelisted and not blacklisted means the main world must not install.
   const shouldDisable = isWhitelisted && !isBlacklisted;
 
-  // Post message to Main World
   window.postMessage({ __clipboardBucklerConfig: true, disable: shouldDisable }, "*");
 
   if (shouldDisable) {
-    return; // Stop execution here. Don't set up listeners/UI.
+    return; // Whitelisted page: no listeners, no UI.
   }
-  
+
   const nativePost = window.postMessage;
   const nativeAdd  = window.addEventListener;
   const nativeRem  = window.removeEventListener;
@@ -31,7 +29,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
   function post(obj) { try { nativePost.call(window, Object.assign({ [NS]: true }, obj), "*"); } catch (e) {} }
   function postRes(id, allow) { post({ dir: "res", id: id, allow: !!allow }); }
 
-  // ---- storage cache ------------------------------------------------------
   let cache = null;
   browser.storage.onChanged.addListener(function (ch, area) { if (area === "local") cache = null; });
   async function getState() {
@@ -60,7 +57,7 @@ if (typeof browser === "undefined") { var browser = chrome; }
     cache = null;
   }
 
-  // ---- request queue: one modal at a time per frame -----------------------
+  // One modal at a time per frame.
   const queue = [];
   let showing = false;
   function enqueue(req) { queue.push(req); pump(); }
@@ -75,9 +72,9 @@ if (typeof browser === "undefined") { var browser = chrome; }
       const inW = matches(host, s.wl);
       const inB = matches(host, s.bl);
       let decision = null;
-      // BLOCKLIST has priority over WHITELIST when a domain appears in both.
+      // A blocked entry wins when a domain is on both lists.
       if (s.lock)       decision = (inB || !inW) ? "deny" : "allow"; // lockdown: lists only
-      else if (inB)     decision = "deny";                           // blocked takes priority
+      else if (inB)     decision = "deny";
       else if (inW)     decision = "allow";
 
       if (decision) { postRes(req.id, decision === "allow"); return; }
@@ -91,47 +88,50 @@ if (typeof browser === "undefined") { var browser = chrome; }
     }
   }
 
-  // ---- the modal ----------------------------------------------------------
   const CSS = `
   :host{all:initial;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2147483647;
-        pointer-events:auto;font-family:system-ui;} 
-  .backdrop{position:absolute;inset:0;background:rgba(15,18,22,.45);}
-  .card{position:absolute;background:#fff;color:#1f2328;border:1px solid #d0d7de;border-radius:14px;
+        pointer-events:auto;font-family:system-ui,sans-serif;}
+  /* The host's inline all:initial resets inheritance, so re-assert the popup font here. */
+  .backdrop{position:absolute;inset:0;background:rgba(15,18,22,.45);font-family:system-ui,sans-serif;}
+  .card{position:absolute;background:#ffffff;color:#1b2026;border:1px solid #d9dee4;border-radius:10px;
         box-shadow:0 18px 50px rgba(0,0,0,.35);padding:18px 18px 16px;max-height:90vh;overflow:auto;}
   .head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-  .head svg{color:#e8843c;flex:0 0 auto;} 
+  .head svg{color:#2563eb;flex:0 0 auto;}
   .title{font-weight:700;font-size:15px;}
-  .host{font-size:12px;color:#57606a;word-break:break-all;}
+  .host{font-size:12px;color:#5b6570;word-break:break-all;}
   .msg{font-size:13.5px;margin:10px 0 8px;line-height:1.45;}
   .msg b{font-weight:600;}
-  .preview{background:#f6f8fa;border:1px solid #d0d7de;border-radius:8px;
-           padding:8px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; 
-           font-size:12.5px;white-space:pre-wrap;word-break:break-word;max-height:140px;overflow:auto;color:#1f2328;}
-  .preview.empty{color:#8b949e;font-style:italic;}
-  .count{margin:10px 0 4px;font-size:12px;color:#57606a;display:flex;align-items:center;gap:8px;}
-  .bar{flex:1;height:4px;background:#eaeef2;border-radius:3px;overflow:hidden;}
-  .bar > i{display:block;height:100%;width:100%;background:#e8843c;transition:width 1s linear;}
-  .hint{font-size:11px;color:#8b949e;margin:2px 0 12px;}
+  .preview{background:#f4f6f8;border:1px solid #d9dee4;border-radius:8px;
+           padding:8px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+           font-size:12.5px;white-space:pre-wrap;word-break:break-word;max-height:140px;overflow:auto;color:#1b2026;}
+  .preview.empty{color:#5b6570;font-style:italic;}
+  .count{margin:10px 0 4px;font-size:12px;color:#5b6570;display:flex;align-items:center;gap:8px;}
+  .bar{flex:1;height:4px;background:#e3e8ee;border-radius:3px;overflow:hidden;}
+  .bar > i{display:block;height:100%;width:100%;background:#2563eb;transition:width 1s linear;}
+  .hint{font-size:11px;color:#5b6570;margin:2px 0 12px;}
   .row{display:flex;gap:8px;flex-wrap:wrap;}
+  .divider{width:1px;align-self:stretch;background:#d9dee4;}
   button{appearance:none;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
-         border-radius:8px;padding:8px 14px;border:1px solid #d0d7de;background:#f6f8fa;color:#1f2328;}
-  button:hover{background:#eef1f4;}
-  button:focus-visible{outline:2px solid #e8843c;outline-offset:2px;}
-  button.primary{background:#e8843c;border-color:#e8843c;color:#fff;}
-  button.primary:hover{background:#d9752f;}
-  @media (prefers-color-scheme:dark){
-    .backdrop{background:rgba(0,0,0,.62);}
-    .card{background:#161b22;color:#e6edf3;border-color:#30363d;}
-    .host,.count{color:#8b949e;}
-    .preview{background:#0d1117;border-color:#30363d;color:#e6edf3;}
-    .preview.empty{color:#6e7681;}
-    .bar{background:#21262d;}
-    button{background:#21262d;border-color:#30363d;color:#e6edf3;}
-    button:hover{background:#282e36;}
-    button.primary{background:#f0883e;border-color:#f0883e;color:#1c2128;}
-    button.primary:hover{background:#db6d28;}
-    .hint{color:#6e7681;}
-  }`;
+         border-radius:8px;padding:8px 14px;border:1px solid #d9dee4;background:#f4f6f8;color:#1b2026;}
+  button:hover{background:#eceff3;}
+  button:focus-visible{outline:2px solid #2563eb;outline-offset:2px;}
+  button.primary{background:#2563eb;border-color:#2563eb;color:#ffffff;}
+  button.primary:hover{background:#1e51c7;}
+  :host([data-theme="dark"]) .backdrop{background:rgba(0,0,0,.62);}
+  :host([data-theme="dark"]) .card{background:#1e2329;color:#e8eaed;border-color:#3a4149;}
+  :host([data-theme="dark"]) .head svg{color:#35d6c2;}
+  :host([data-theme="dark"]) .host,:host([data-theme="dark"]) .count{color:#a5aeb8;}
+  :host([data-theme="dark"]) .preview{background:#171b20;border-color:#3a4149;color:#e8eaed;}
+  :host([data-theme="dark"]) .preview.empty{color:#8b949e;}
+  :host([data-theme="dark"]) .bar{background:#2b3138;}
+  :host([data-theme="dark"]) .bar > i{background:#35d6c2;}
+  :host([data-theme="dark"]) button{background:#272d34;border-color:#3a4149;color:#e8eaed;}
+  :host([data-theme="dark"]) button:hover{background:#2e353d;}
+  :host([data-theme="dark"]) .divider{background:#3a4149;}
+  :host([data-theme="dark"]) button:focus-visible{outline-color:#35d6c2;}
+  :host([data-theme="dark"]) button.primary{background:#35d6c2;border-color:#35d6c2;color:#0e1f1c;}
+  :host([data-theme="dark"]) button.primary:hover{background:#2cc7b4;}
+  :host([data-theme="dark"]) .hint{color:#8b949e;}`;
 
   const LOCK_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">' +
     '<path fill="currentColor" d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v4h-2z"/></svg>';
@@ -153,22 +153,25 @@ if (typeof browser === "undefined") { var browser = chrome; }
     return n;
   }
 
-  function showDialog(req) {
+  async function showDialog(req) {
+    // Theme follows the extension setting; "auto" falls back to the system.
+    let themePref = "auto";
+    try {
+      themePref = (await browser.storage.local.get(["themePref"])).themePref || "auto";
+    } catch (e) { themePref = "auto"; }
     return new Promise(function (resolve) {
       let settled = false, remaining = 30, timer = null, barFill = null, countTxt = null;
       
-      // --- STEP 1: CALCULATE CENTER BEFORE TOUCHING ANYTHING ---
+      // Measure before any DOM changes so the dialog cannot skew its own centering.
       const winWidth = window.innerWidth;
       const winHeight = window.innerHeight;
       const estimatedCardWidth = Math.min(440, winWidth * 0.9);
       const leftPos = (winWidth - estimatedCardWidth) / 2;
       const topPos = (winHeight * 0.15); 
       
-      // Save current scroll position
       const scrollY = window.scrollY || window.pageYOffset;
       const scrollX = window.scrollX || window.pageXOffset;
       
-      // Save original styles to restore later
       const origBodyOverflow = document.body.style.overflow;
       const origHtmlOverflow = document.documentElement.style.overflow;
       const origBodyPosition = document.body.style.position;
@@ -207,13 +210,15 @@ if (typeof browser === "undefined") { var browser = chrome; }
         resolve({ allow: !!allow, persist: persist || null });
       }
 
-      // Define buttons array FIRST so it exists before handlers run
-      const btnNo = el("button", { class: "primary", text: "No", onclick: function () { finish(false, null); } });
-      const btnYes = el("button", { text: "Yes", onclick: function () { finish(true, null); } });
-      const btnAlways = el("button", { text: "Always", onclick: function () { finish(true, "whitelist"); } });
-      const btnNever = el("button", { text: "Never", onclick: function () { finish(false, "blacklist"); } });
+      // Buttons are created before the handlers that reference them.
+      const btnNo = el("button", { class: "primary", text: "Deny", onclick: function () { finish(false, null); } });
+      const btnYes = el("button", { text: "Allow", onclick: function () { finish(true, null); } });
+      const btnAlways = el("button", { text: "Always Allow", onclick: function () { finish(true, "whitelist"); } });
+      const btnNever = el("button", { text: "Always Deny", onclick: function () { finish(false, "blacklist"); } });
       
-      const buttons = [btnNo, btnYes, btnAlways, btnNever];
+      const buttons = [btnNo, btnYes, btnNever, btnAlways];
+      // Visual-only separator; kept out of `buttons` so keyboard cycling skips it.
+      const divider = el("span", { class: "divider", "aria-hidden": "true" });
       let currentFocusIdx = 0; // Start at No
 
       function moveFocus(direction) {
@@ -252,13 +257,10 @@ if (typeof browser === "undefined") { var browser = chrome; }
       const root = hostEl.attachShadow({ mode: "open" }); 
       root.appendChild(el("style", { text: CSS }));
 
-      // Apply theme
+      // Theme was resolved from the extension setting before the dialog opened.
       try {
-        if (matchMedia("(prefers-color-scheme: dark)").matches) {
-          hostEl.dataset.theme = "dark";
-        } else {
-          hostEl.dataset.theme = "light";
-        }
+        const systemDark = matchMedia("(prefers-color-scheme: dark)").matches;
+        hostEl.dataset.theme = themePref === "auto" ? (systemDark ? "dark" : "light") : themePref;
       } catch (e) {
         hostEl.dataset.theme = "light";
       }
@@ -291,7 +293,7 @@ if (typeof browser === "undefined") { var browser = chrome; }
       }, [
         head, el("div", { class: "msg", text: "" }), previewNode, count,
         el("div", { class: "hint", text: "Use Arrow Keys to navigate · Enter to select · Esc to Deny" }),
-        el("div", { class: "row" }, buttons) 
+        el("div", { class: "row" }, [btnNo, btnYes, divider, btnNever, btnAlways]) 
       ]);
       
       const msg = card.querySelector(".msg");
@@ -301,7 +303,6 @@ if (typeof browser === "undefined") { var browser = chrome; }
 
       root.appendChild(el("div", { class: "backdrop" }, [card]));
 
-      // Mount & Lock Scroll
       (function mount() {
         if (document.documentElement) {
           document.documentElement.appendChild(hostEl);
